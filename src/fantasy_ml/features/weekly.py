@@ -40,6 +40,21 @@ def build_weekly_features(
     if missing:
         raise ValueError(f"Missing required columns: {missing}")
 
+    duplicate_player_weeks = (
+        df.filter(pl.col("season_type") == "REG")
+        .filter(pl.col("player_id").is_not_null())
+        .group_by(["season", "season_type", "week", "player_id"])
+        .len()
+        .filter(pl.col("len") > 1)
+        .height
+    )
+
+    if duplicate_player_weeks:
+        raise ValueError(
+            f"Found {duplicate_player_weeks} duplicate player-week groups "
+            "(potential duplicate player-game records)"
+        )
+
     if any(
         not isinstance(window, int) or isinstance(window, bool) or window < 1
         for window in rolling_windows
@@ -76,3 +91,4 @@ def build_weekly_features(
         result = result.with_columns(expressions)
 
     return result
+
