@@ -66,6 +66,8 @@ def fit_ridge(
     alpha: float = 1.0,
 ) -> Pipeline:
     """Fit Ridge using only the rows passed to this function."""
+    if alpha <= 0:
+        raise ValueError("alpha must be positive")
     if training_rows.is_empty():
         raise ValueError("training_rows must not be empty")
 

@@ -22,13 +22,13 @@ def sample_training_rows():
             "position": ["RB", "WR", "RB", "WR", "RB", "WR"],
             "team": ["AAA", "BBB", "AAA", "BBB", "AAA", "BBB"],
             "opponent_team": ["BBB", "AAA", "BBB", "AAA", "BBB", "AAA"],
-            "fantasy_points_ppr_avg_prev_3_games": [
+            "model_fantasy_points_avg_prev_3_games": [
                 None, None, 8.0, 4.0, 10.0, 5.0
             ],
-            "fantasy_points_ppr_avg_prev_5_games": [
+            "model_fantasy_points_avg_prev_5_games": [
                 None, None, 7.0, 3.0, 9.0, 4.0
             ],
-            "fantasy_points_ppr": [8.0, 4.0, 10.0, 5.0, 11.0, 6.0],
+            "model_fantasy_points": [8.0, 4.0, 10.0, 5.0, 11.0, 6.0],
         }
     )
 
