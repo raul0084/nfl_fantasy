@@ -13,6 +13,13 @@ scoring:
   reception: 1.0
   fumble_lost: -2.0
 
+kicker_scoring:
+  fg_0_39: 3.0
+  fg_40_49: 4.0
+  fg_50_plus: 5.0
+  extra_point_made: 1.0
+  missed_field_goal: 0.0
+
 data:
   first_season: 2018
   last_historical_season: 2025

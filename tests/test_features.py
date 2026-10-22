@@ -26,7 +26,8 @@ def test_rolling_features_exclude_current_week():
     assert averages[3] == pytest.approx(20.0)
 
 
-def test_features_do_not_cross_seasons():
+
+def test_features_use_previous_season_history():
     df = pl.DataFrame({
         "season": [2024, 2025],
         "season_type": ["REG", "REG"],
@@ -37,9 +38,12 @@ def test_features_do_not_cross_seasons():
 
     result = build_weekly_features(df, rolling_windows=(3,))
 
+    # First game has no prior history.
+    # The next season's first game uses the previous season's 30 points.
     assert result["fantasy_points_ppr_avg_prev_3_games"].to_list() == [
-        None, None
+        None, 30.0
     ]
+
 
 
 def test_missing_required_column_raises():
@@ -111,3 +115,53 @@ def test_duplicate_player_week_is_rejected():
 
     with pytest.raises(ValueError, match="duplicate player-week"):
         build_weekly_features(df)
+
+
+def test_rolling_features_use_previous_season_history():
+    import polars as pl
+    import pytest
+
+    from fantasy_ml.features.weekly import build_weekly_features
+
+    df = pl.DataFrame({
+        "season": [2024, 2024, 2025],
+        "season_type": ["REG", "REG", "REG"],
+        "week": [17, 18, 1],
+        "player_id": ["p1", "p1", "p1"],
+        "fantasy_points_ppr": [10.0, 20.0, 30.0],
+    })
+
+    result = build_weekly_features(df, rolling_windows=(3,))
+
+    # 2025 Week 1 can use the two prior games, but not its own 30 points.
+    week1 = result.filter(
+        (pl.col("season") == 2025) & (pl.col("week") == 1)
+    )
+
+    assert week1[
+        "fantasy_points_ppr_avg_prev_3_games"
+    ][0] == pytest.approx(15.0)
+
+
+def test_current_game_score_does_not_change_its_rolling_feature():
+    df = pl.DataFrame({
+        "season": [2025, 2025],
+        "season_type": ["REG", "REG"],
+        "week": [1, 2],
+        "player_id": ["p1", "p1"],
+        "fantasy_points_ppr": [10.0, 20.0],
+    })
+
+    changed = df.with_columns(
+        pl.when(pl.col("week") == 2)
+        .then(pl.lit(999.0))
+        .otherwise(pl.col("fantasy_points_ppr"))
+        .alias("fantasy_points_ppr")
+    )
+
+    original_features = build_weekly_features(df, rolling_windows=(3,))
+    changed_features = build_weekly_features(changed, rolling_windows=(3,))
+
+    # Week 2's feature must reflect Week 1, regardless of Week 2's score.
+    assert original_features["fantasy_points_ppr_avg_prev_3_games"][1] == 10.0
+    assert changed_features["fantasy_points_ppr_avg_prev_3_games"][1] == 10.0

@@ -31,7 +31,7 @@ def sample_stats():
 def test_training_target_is_actual_ppr():
     result = build_training_dataset(sample_stats())
 
-    assert result["fantasy_points_ppr"].to_list() == [
+    assert result["model_fantasy_points"].to_list() == [
         10.0, 20.0, 5.0, 15.0
     ]
 
@@ -43,7 +43,7 @@ def test_current_game_statistics_are_not_features():
     assert "targets" not in X.columns
     assert "receptions" not in X.columns
     assert "receiving_yards" not in X.columns
-    assert "fantasy_points_ppr" not in X.columns
+    assert "model_fantasy_points" not in X.columns
     assert len(X) == len(y) == len(metadata)
 
 
@@ -55,7 +55,7 @@ def test_rolling_features_use_only_prior_games():
 
     # Week 2's rolling PPR average uses Week 1 only.
     assert result[
-        "fantasy_points_ppr_avg_prev_3_games"
+        "model_fantasy_points_avg_prev_3_games"
     ].to_list()[1] == pytest.approx(10.0)
 
 
@@ -77,3 +77,87 @@ def test_duplicate_player_game_is_rejected():
 
     with pytest.raises(ValueError, match="duplicate player-game"):
         build_training_dataset(df)
+
+def test_prediction_dataset_uses_only_pre_week_history():
+    from fantasy_ml.data.training import build_prediction_dataset
+
+    history = sample_stats()
+
+    upcoming = pl.DataFrame({
+        "season": [2024],
+        "season_type": ["REG"],
+        "week": [5],
+        "game_id": ["g5"],
+        "player_id": ["p1"],
+        "player_name": ["Player One"],
+        "position": ["WR"],
+        "team": ["AAA"],
+        "opponent_team": ["BBB"],
+    })
+
+    result = build_prediction_dataset(history, upcoming)
+
+    assert result.height == 1
+    assert result["week"].to_list() == [5]
+    assert result["model_fantasy_points"].to_list() == [None]
+
+    # Prior three observed games: weeks 2, 3 and 4.
+    assert result[
+        "model_fantasy_points_avg_prev_3_games"
+    ][0] == pytest.approx((20.0 + 5.0 + 15.0) / 3)
+
+
+def test_prediction_dataset_excludes_target_week_history():
+    from fantasy_ml.data.training import build_prediction_dataset
+
+    history = sample_stats()
+
+    # Deliberately include a target-week record in historical input.
+    target_week_record = pl.DataFrame({
+        "season": [2024],
+        "season_type": ["REG"],
+        "week": [5],
+        "game_id": ["g5"],
+        "player_id": ["p1"],
+        "player_name": ["Player One"],
+        "position": ["WR"],
+        "team": ["AAA"],
+        "opponent_team": ["BBB"],
+        "fantasy_points_ppr": [999.0],
+        "targets": [99],
+        "receptions": [99],
+        "receiving_yards": [999],
+    })
+    history = pl.concat(
+        [history, target_week_record],
+        how="diagonal_relaxed",
+    )
+
+    upcoming = target_week_record.drop(
+        "fantasy_points_ppr", "targets", "receptions", "receiving_yards"
+    )
+
+    result = build_prediction_dataset(history, upcoming)
+
+    assert result["model_fantasy_points"][0] is None
+    assert result[
+        "model_fantasy_points_avg_prev_3_games"
+    ][0] == pytest.approx((20.0 + 5.0 + 15.0) / 3)
+
+def test_training_keeps_only_offensive_fantasy_positions():
+    df = pl.concat(
+        [
+            sample_stats(),
+            sample_stats().head(1).with_columns(
+                pl.lit("CB").alias("position"),
+                pl.lit("defensive-player").alias("player_id"),
+                pl.lit("g5").alias("game_id"),
+            ),
+        ]
+    )
+
+    result = build_training_dataset(df)
+
+    assert set(result["position"].unique().to_list()) == {"WR"}
+    assert "defensive-player" not in result["player_id"].to_list()
+

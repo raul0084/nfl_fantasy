@@ -4,9 +4,7 @@
 import polars as pl
 
 
-# Statistics available in the dataset that may help predict future production.
-CANDIDATE_FEATURES = (
-    "fantasy_points_ppr",
+BASE_CANDIDATE_FEATURES = (
     "targets",
     "carries",
     "receptions",
@@ -19,6 +17,12 @@ CANDIDATE_FEATURES = (
     "wopr",
 )
 
+CANDIDATE_FEATURES = (
+    "fantasy_points_ppr",
+    "model_fantasy_points",
+    *BASE_CANDIDATE_FEATURES,
+)
+
 
 def build_weekly_features(
     df: pl.DataFrame,
@@ -26,15 +30,21 @@ def build_weekly_features(
 ) -> pl.DataFrame:
     """Build rolling features using only prior observed player rows.
 
-    Features reset at each season boundary. Rolling windows count prior
-    observed rows, not necessarily consecutive calendar weeks.
+    Uses model_fantasy_points when available, otherwise falls back to
+    fantasy_points_ppr. Features reset at each season boundary.
     """
+    score_column = (
+        "model_fantasy_points"
+        if "model_fantasy_points" in df.columns
+        else "fantasy_points_ppr"
+    )
+
     required = {
         "season",
         "season_type",
         "week",
         "player_id",
-        "fantasy_points_ppr",
+        score_column,
     }
     missing = sorted(required - set(df.columns))
     if missing:
@@ -56,7 +66,9 @@ def build_weekly_features(
         )
 
     if any(
-        not isinstance(window, int) or isinstance(window, bool) or window < 1
+        not isinstance(window, int)
+        or isinstance(window, bool)
+        or window < 1
         for window in rolling_windows
     ):
         raise ValueError("Rolling windows must be positive integers")
@@ -71,9 +83,12 @@ def build_weekly_features(
     )
 
     available_features = [
-        column
-        for column in CANDIDATE_FEATURES
-        if column in result.columns
+        score_column,
+        *(
+            column
+            for column in BASE_CANDIDATE_FEATURES
+            if column in result.columns
+        ),
     ]
 
     expressions = []
@@ -83,7 +98,7 @@ def build_weekly_features(
                 pl.col(column)
                 .shift(1)
                 .rolling_mean(window_size=window, min_samples=1)
-                .over(["player_id", "season"])
+                .over("player_id")
                 .alias(f"{column}_avg_prev_{window}_games")
             )
 
@@ -91,4 +106,3 @@ def build_weekly_features(
         result = result.with_columns(expressions)
 
     return result
-
