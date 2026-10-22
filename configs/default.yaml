@@ -1,0 +1,26 @@
+project:
+  name: nfl-fantasy-ml-optimizer
+  timezone: America/New_York
+
+scoring:
+  passing_yard: 0.04
+  passing_td: 4.0
+  interception: -2.0
+  rushing_yard: 0.1
+  receiving_yard: 0.1
+  rushing_td: 6.0
+  receiving_td: 6.0
+  reception: 1.0
+  fumble_lost: -2.0
+
+data:
+  first_season: 2018
+  last_historical_season: 2025
+  raw_dir: data/raw
+  interim_dir: data/interim
+  processed_dir: data/processed
+
+backtest:
+  train_seasons: [2018, 2019, 2020, 2021, 2022]
+  validation_seasons: [2023]
+  test_seasons: [2024, 2025]
