@@ -1,4 +1,4 @@
-# NFL Fantasy ML Optimizer
+# NFL Fantasy Optimizer
 
 Trying to up my fantasy game. 
 
