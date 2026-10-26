@@ -1,0 +1,14 @@
+
+services:
+  nfl-fantasy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nfl-fantasy-ml:local
+    container_name: nfl-fantasy-ml
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts
+    restart: unless-stopped

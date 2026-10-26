@@ -1,4 +1,5 @@
-FROM python:3.12-slim
+
+FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -6,12 +7,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install runtime dependencies first for better build-cache reuse.
-COPY pyproject.toml README.md ./
-COPY src/ ./src/
-RUN python -m pip install --upgrade pip && \
-    python -m pip install .
+COPY . .
 
-# The app will be added later; default to the interactive dashboard entrypoint.
+RUN python -m pip install --no-cache-dir .
+
 EXPOSE 8501
-CMD ["streamlit", "run", "src/fantasy_ml/app.py", "--server.address=0.0.0.0"]
+
+CMD ["streamlit", "run", "src/fantasy_ml/app.py", "--server.address=0.0.0.0", "--server.port=8501", "--server.headless=true"]

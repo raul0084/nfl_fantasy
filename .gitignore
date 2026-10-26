@@ -1,30 +1,63 @@
 # Python
 __pycache__/
 *.py[cod]
-.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# Virtual environments
 .venv/
 venv/
-.env
-.env.*
+env/
+
+# Testing, linting, and coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
 
 # Jupyter
-notebooks/*
+.ipynb_checkpoints/
 
-# Data: keep generated and raw datasets out of Git
-data/raw/*
-data/interim/*
-data/processed/*
-!data/raw/.gitkeep
-!data/interim/.gitkeep
-!data/processed/.gitkeep
+# Local data and databases
+data/raw/
+data/interim/
+data/processed/
+data/*.duckdb
+data/*.duckdb.wal
+data/*.db
+data/*.sqlite
+data/*.sqlite3
 
-# Model artifacts and metrics
-artifacts/models/*
-artifacts/metrics/*
-!artifacts/models/.gitkeep
-!artifacts/metrics/.gitkeep
+# Generated artifacts and model outputs
+artifacts/models/
+artifacts/metrics/
+artifacts/predictions/
+artifacts/*.pkl
+artifacts/*.joblib
+artifacts/*.lgb
+artifacts/*.txt
 
-# OS/editor
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# OS and editor files
 .DS_Store
+.AppleDouble
 .vscode/
 .idea/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+
+notebooks/*
+*.egg-info/
+nfl_fantasy_ml_optimizer.egg-info/
